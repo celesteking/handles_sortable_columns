@@ -120,4 +120,4 @@ Feedback
 --------
 
 * Read and understand the source.
-* Head over [Issues](./issues/)
+* Head over [Issues](../../issues/)
