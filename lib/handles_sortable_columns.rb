@@ -1,5 +1,14 @@
-# Rails gem init.
 
-# NOTE: Rails 3 seems to require exact order.
-require File.join(File.dirname(__FILE__), "handles/sortable_columns")
-require File.join(File.dirname(__FILE__), "action_controller/base/handles_sortable_columns")
+require 'handles/sortable_columns'
+
+module Handles
+  module SortableColumns
+    class Railtie < Rails::Railtie
+      initializer "handles_sortable_columns" do |app|
+        ActiveSupport.on_load :action_controller_base do |base|
+          base.extend ::Handles::SortableColumns::ControllerClassMethods
+        end
+      end
+    end
+  end
+end

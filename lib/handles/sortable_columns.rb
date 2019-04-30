@@ -20,29 +20,21 @@ module Handles  #:nodoc:
   #
   #   def index
   #     order = sortable_column_order
-  #     @records = Article.order(order)           # Rails 3.
-  #     @records = Article.all(:order => order)   # Rails 2.
+  #     @records = Article.order(order)
   #   end
   #
   # That's it for basic usage. Production usage may require passing additional parameters to listed methods.
   #
   # See also:
-  # * MetaClassMethods#handles_sortable_columns
+  # * ControllerClassMethods#handles_sortable_columns
   # * InstanceMethods#sortable_column_order
   module SortableColumns
-    def self.included(owner)    #:nodoc:
-      owner.extend MetaClassMethods
-    end
-
     # Sortable columns configuration object. Passed to the block when you do a:
     #
     #   handles_sortable_columns do |conf|
     #     ...
     #   end
     class Config
-      RAILS_SAFE_PARAMS = %i[action controller].freeze
-      LIB_PARAMS = %i[sort_param direction column page_param default_sort_value]
-                   .freeze
       # CSS class for link (regardless of sorted state). Default:
       #
       #   SortableColumnLink
@@ -73,24 +65,25 @@ module Handles  #:nodoc:
       #  {:asc => "SortedAsc", :desc => "SortedDesc"}
       attr_accessor :indicator_class
 
+      # Params to allow inside generated sort links
       attr_reader :safe_params
 
       def initialize(attrs = {})
         defaults = {
-          :link_class => "SortableColumnLink",
-          :indicator_class => {:asc => "SortedAsc", :desc => "SortedDesc"},
-          :indicator_text => {:asc => "&nbsp;&darr;&nbsp;", :desc => "&nbsp;&uarr;&nbsp;"},
-          :page_param => "page",
-          :sort_param => "sort",
-          :default_sort_value => nil
+            link_class:         "SortableColumnLink",
+            indicator_class:    { asc: "SortedAsc", desc: "SortedDesc" },
+            indicator_text:     { asc: "&nbsp;&darr;&nbsp;", desc: "&nbsp;&uarr;&nbsp;" },
+            page_param:         "page",
+            sort_param:         "sort",
+            default_sort_value: nil,
+            safe_params:        %i[page sort]
         }
 
         defaults.merge(attrs).each {|k, v| send("#{k}=", v)}
       end
 
       def safe_params=(params = [])
-        @safe_params =
-          RAILS_SAFE_PARAMS + LIB_PARAMS + params.map(&:to_sym)
+        @safe_params = params.push(page_param, sort_param).map(&:to_sym).uniq
       end
 
       # Bracket access for convenience.
@@ -104,7 +97,7 @@ module Handles  #:nodoc:
       end
     end # Config
 
-    module MetaClassMethods
+    module ControllerClassMethods
       # Activate and optionally configure the sortable columns feature in your controller.
       #
       #   class MyController < ApplicationController
@@ -146,7 +139,7 @@ module Handles  #:nodoc:
           end
         end
       end
-    end # MetaClassMethods
+    end
 
     module InstanceMethods
       private
@@ -162,7 +155,7 @@ module Handles  #:nodoc:
       #   parse_sortable_column_sort_param("-name")   # => {:column => "name", :direction => :desc}
       #   parse_sortable_column_sort_param("")        # => {:column => nil, :direction => nil}
       def parse_sortable_column_sort_param(sort)    #:nodoc:
-        out = {:column => nil, :direction => nil}
+        out = { column: nil, direction: nil }
         if sort.to_s.strip.match /\A((?:-|))([^-]+)\z/
           out[:direction] = $1.empty?? :asc : :desc
           out[:column] = $2.strip
@@ -227,9 +220,6 @@ module Handles  #:nodoc:
         html_options[:class] = css_class.join(" ") if css_class.present?
         html_options[:style] = o[:link_style] if o[:link_style].present?
 
-        # Rails 3 / Rails 2 fork.
-        tpl = respond_to?(:view_context) ? view_context : @template
-
         # Already sorted?
         if pp[:column] == o[:column].to_s
           if o[:route_proxy]
@@ -237,7 +227,7 @@ module Handles  #:nodoc:
           else
             url = url_for(safety_params.merge({conf[:sort_param] => [("-" if pp[:direction] == :asc), o[:column]].join, conf[:page_param] => 1}))
           end
-          pcs << tpl.link_to(title, url, html_options)       # Opposite sort order when clicked.
+          pcs << view_context.link_to(title, url, html_options)       # Opposite sort order when clicked.
 
           # Append indicator, if configured.
           if (s = conf[:indicator_text][pp[:direction]]).present?
@@ -250,7 +240,7 @@ module Handles  #:nodoc:
           else
             url = url_for(safety_params.merge({conf[:sort_param] => [("-" if o[:direction] != :asc), o[:column]].join, conf[:page_param] => 1}))
           end
-          pcs << tpl.link_to(title, url, html_options)
+          pcs << view_context.link_to(title, url, html_options)
         end
 
         # For Rails 3 provide #html_safe.

@@ -5,13 +5,13 @@
 
 Gem::Specification.new do |s|
   s.name = "handles_sortable_columns"
-  s.version = "0.1.4"
+  s.version = "0.1.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Alex Fortuna"]
-  s.date = "2013-02-24"
+  s.authors = ["Alex Fortuna", 'Community']
+  s.date = "2019-04-04"
   s.description = "Sortable Table Columns"
-  s.email = "alex.r@askit.org"
+  s.email = "none@none.local"
   s.extra_rdoc_files = [
     "README.html",
     "README.md"
